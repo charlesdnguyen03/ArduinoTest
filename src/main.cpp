@@ -93,21 +93,10 @@ void setup() {
     exit(1);
   }
   bno.setExtCrystalUse(true);
-  // this isn't in Marcin's code so I assume it's okay to leave out
-  // // Calibrating IMU
-  // Serial.print(F("Calibrating IMU"));
-  // while (true) {
-  //   uint8_t system, gyro, accel, mag = 0;
-  //   if (system) { break; } // Calibrated when system > 0 (Fully when system == 3)
-
-  //   Serial.print(F("."));
-  //   delay(50);
-  // }
   
   // Start ESC on pin 9
-  ESC.attach(9, MIN_PWM, MAX_PWM);
-  ESC.writeMicroseconds(STATIONARY_PWM);
-  
+  calibrateESC();
+
   updateYawAngle();
   targetPos = yawAngle;
 
