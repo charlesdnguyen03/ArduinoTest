@@ -45,10 +45,8 @@ byte controllerState = 0;
 
 // Calibrate ESC by plugging in battery when MAX_PWM is being outputted.
 void calibrateESC() {
-  ESC.writeMicroseconds(MAX_PWM);
+  ESC.writeMicroseconds(STATIONARY_PWM);
   delay(8000);
-  ESC.writeMicroseconds(MIN_PWM);
-  delay(1000);
 }
 
 // Set the current speed and direction of the motor
@@ -59,16 +57,12 @@ void setSpeed(double targetSpeed) {
 }
 
 void updateYawAngle() {
-  // imu::Vector<3> eulerAngles = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
-  // return eulerAngles.z();
   sensors_event_t event;
   bno.getEvent(&event);
   yawAngle = event.orientation.roll;
 }
 
 void updateYawSpeed() {
-  // imu::Vector<3> angularSpeed = bno.getVector(Adafruit_BNO055::VECTOR_GYROSCOPE);
-  // return angularSpeed.z() * 57.2958; // For degrees per second (originally in radians per second)
   sensors_event_t event;
   bno.getEvent(&event);
   yawAngularSpeed = event.gyro.x;
