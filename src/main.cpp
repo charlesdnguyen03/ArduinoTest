@@ -51,7 +51,7 @@ void calibrateESC() {
 
 // Set the current speed and direction of the motor
 void setSpeed(double targetSpeed) {
-  // the question is what the difference between stationary and min is.
+  // double check how this works for a negative value. MIN_PWM should go max backwards
   motorSpeed = constrain(STATIONARY_PWM + targetSpeed, MIN_PWM, MAX_PWM); 
   ESC.writeMicroseconds(motorSpeed);
 }
@@ -119,7 +119,8 @@ void loop() {
     }
     // FSM action 
     if (controllerState == 0) { // state 0 = detumble + update time for angle 
-      pidAngle.compute(targetPos, yawAngle, timeCur - timePrev); 
+      motorSpeed += pidSpeed.compute(0, rollingAvg, timeCur - timePrev);
+      pidAngle.compute(targetPos, yawAngle, timeCur - timePrev); // need because time is updated each iter
     } else { // state 1 = set setpoint to calculated motor output. Error = desired pwm -avg pwm 
       motorSpeed += pidSpeed.compute(pidAngle.compute(targetPos, yawAngle, timeCur - timePrev), rollingAvg, timeCur - timePrev);
     } 
