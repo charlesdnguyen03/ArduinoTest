@@ -1,7 +1,7 @@
 // ------BLDC--------
 #include <Servo.h>
-#define MAX_PWM 2000
-#define MIN_PWM 1000
+#define MAX_PWM 1700
+#define MIN_PWM 1300
 #define STATIONARY_PWM 1500
 Servo ESC;
 double motorSpeed = 0;
@@ -21,13 +21,13 @@ double yawAngularSpeed = 0;
 
 // -------PID--------
 #include "PID.h"
-const double xkP = 2.5; // displacement kP 
+const double xkP = 0.25; // displacement kP 
 const double xkI = 0.0;
-const double xkD = 400; // 400 kD lmao
+const double xkD = 0.0;
 PIDAngleController pidAngle(xkP, xkI, xkD); 
-const double vkP = 0.050; // velocity kP // TODO: ESC already has a velocity speed, so sus.
+const double vkP = 0.05; // velocity kP // TODO: ESC already has a velocity speed, so sus.
 const double vkI = 0.000;
-const double vkD = 0.017; 
+const double vkD = 0.0; 
 PIDController pidSpeed(vkP, vkI, vkD);
 // ------------------
 
@@ -46,7 +46,7 @@ byte controllerState = 0;
 // Calibrate ESC by plugging in battery when MAX_PWM is being outputted.
 void calibrateESC() {
   ESC.writeMicroseconds(STATIONARY_PWM);
-  delay(8000);
+  delay(2000);
 }
 
 // Set the current speed and direction of the motor
@@ -89,6 +89,7 @@ void setup() {
   bno.setExtCrystalUse(true);
   
   // Start ESC on pin 9
+  ESC.attach(9,1000,2000);
   calibrateESC();
 
   updateYawAngle();
@@ -111,26 +112,35 @@ void loop() {
     updateYawSpeed();
     updateRollingAvg();
 
-    // FSM transition
-    if (controllerState == 1 && fabs(rollingAvg) > 360 /* °/s */) {
-      controllerState = 0;
-    } else if (controllerState == 0 && fabs(rollingAvg) < 45 /* °/s */) {
-      controllerState = 1;
-    }
-    // FSM action 
-    if (controllerState == 0) { // state 0 = detumble + update time for angle 
-      motorSpeed += pidSpeed.compute(0, rollingAvg, timeCur - timePrev);
-      pidAngle.compute(targetPos, yawAngle, timeCur - timePrev); // need because time is updated each iter
-    } else { // state 1 = set setpoint to calculated motor output. Error = desired pwm -avg pwm 
-      motorSpeed += pidSpeed.compute(pidAngle.compute(targetPos, yawAngle, timeCur - timePrev), rollingAvg, timeCur - timePrev);
-    } 
+    // // FSM transition
+    // if (controllerState == 1 && fabs(rollingAvg) > 360 /* °/s */) {
+    //   controllerState = 0;
+    // } else if (controllerState == 0 && fabs(rollingAvg) < 45 /* °/s */) {
+    //   controllerState = 1;
+    // }
+    // controllerState = 0;
+    // // FSM action 
+    // if (controllerState == 0) { // state 0 = detumble + update time for angle 
+    //   motorSpeed += pidSpeed.compute(0, rollingAvg, timeCur - timePrev);
+    //   pidAngle.compute(targetPos, yawAngle, timeCur - timePrev); // need because time is updated each iter
+    // } else { // state 1 = set setpoint to calculated motor output. Error = desired pwm -avg pwm 
+    //   motorSpeed += pidSpeed.compute(pidAngle.compute(targetPos, yawAngle, timeCur - timePrev), rollingAvg, timeCur - timePrev);
+    // } 
+    motorSpeed = pidAngle.compute(0, yawAngle, timeCur - timePrev); // need because time is updated each iter
     setSpeed(motorSpeed);
 
     delay(BNO055_SAMPLERATE_DELAY_MS);
 
     // Print info to console
-    Serial.print(yawAngle);
-    Serial.print(F(" "));
-    Serial.println(rollingAvg);
+    Serial.print("motorSpeed: "); Serial.print(motorSpeed);
+    sensors_event_t event;
+    bno.getEvent(&event);
+    Serial.print(" roll: "); Serial.print(event.orientation.roll);
+    Serial.print(" heading: "); Serial.print(event.orientation.heading);
+    Serial.print(" gyro x: "); Serial.print(event.gyro.x);
+    Serial.print(" gyro y: "); Serial.print(event.gyro.y);
+    Serial.print(" gyro z: "); Serial.println(event.gyro.z);
+    // Serial.print(F(" "));
+    // Serial.println(rollingAvg);
   }
 }
